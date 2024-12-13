@@ -1,5 +1,6 @@
 const express = require("express");
 const fetch = require("node-fetch");
+const cors = require("cors");
 const app = express();
 
 const CLIENT_ID = "OYII8UYZZZMAZX78AHNOXJRJJ8IZHU9S";
@@ -10,68 +11,8 @@ const REDIRECT_URI = "http://localhost:3000/callback";
 // Temporary in-memory storage for access token (Use database for production)
 let accessTokens = {};
 
-const deviceList = [
-  {
-    id: 1,
-    name: "Surface Pro",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 2,
-    name: "Macbook Pro",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 3,
-    name: "Dell XPS",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 4,
-    name: "Lenovo Thinkpad",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 5,
-    name: "HP Elitebook",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 6,
-    name: "Surface Pro 2",
-    cabinet: "Main Cabinet",
-  },
-  {
-    id: 7,
-    name: "Macbook Pro 2",
-    cabinet: "Secondary Cabinet",
-  },
-  {
-    id: 8,
-    name: "Dell XPS 2",
-    cabinet: "Secondary Cabinet",
-  },
-  {
-    id: 9,
-    name: "Lenovo Thinkpad 2",
-    cabinet: "Secondary Cabinet",
-  },
-  {
-    id: 10,
-    name: "HP Elitebook 2",
-    cabinet: "Secondary Cabinet",
-  },
-  {
-    id: 11,
-    name: "Surface Pro 3",
-    cabinet: "Secondary Cabinet",
-  },
-  {
-    id: 12,
-    name: "Macbook Pro 3",
-    cabinet: "Secondary Cabinet",
-  },
-];
+app.use(cors());
+app.use(express.json());
 
 app.get("/auth", (req, res) => {
   const { extensionId } = req.query;
@@ -116,7 +57,6 @@ app.get("/callback", async (req, res) => {
     const accessToken = data.access_token;
     accessTokens[state] = accessToken; // Store access token temporarily
 
-    console.log(`Access token for extension ${state}: ${accessToken}`);
     const redirectUrl = `https://${state}.chromiumapp.org?access_token=${accessToken}`;
     res.redirect(redirectUrl);
   } catch (error) {
@@ -146,7 +86,6 @@ app.get("/workspace", async (req, res) => {
 
     const workspaceData = await response.json();
 
-    console.log(workspaceData.teams[0], "workspaceData");
     if (workspaceData.error) {
       return res.status(400).send(workspaceData.error);
     }
@@ -158,48 +97,132 @@ app.get("/workspace", async (req, res) => {
 });
 
 let taskDeviceAssociations = {}; // Store task-device associations
+const deviceList = [
+  {
+    id: 1,
+    name: "Surface Pro",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 2,
+    name: "Macbook Pro",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 3,
+    name: "Dell XPS",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 4,
+    name: "Lenovo Thinkpad",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 5,
+    name: "HP Elitebook",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 6,
+    name: "Surface Pro 2",
+    cabinet: "Main Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 7,
+    name: "Macbook Pro 2",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 8,
+    name: "Dell XPS 2",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 9,
+    name: "Lenovo Thinkpad 2",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 10,
+    name: "HP Elitebook 2",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 11,
+    name: "Surface Pro 3",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+  {
+    id: 12,
+    name: "Macbook Pro 3",
+    cabinet: "Secondary Cabinet",
+    createdAt: "2021-09-01T10:00:00Z",
+  },
+];
 
-// Endpoint to fetch associated devices for a task
-app.get("/deviceList", (req, res) => {
-  const { taskId } = req.query;
+// Endpoint to fetch devices associated with a task
+app.get("/devices", (req, res) => {
+  const { task_id } = req.query;
 
-  if (!taskId) {
-    return res.status(400).send("Task ID is missing.");
+  if (!task_id) {
+    return res.status(400).json({ error: "task_id is required" });
   }
 
-  // Fetch the associated devices for the given taskId
-  const associatedDevices = taskDeviceAssociations[taskId] || [];
-  res.json(associatedDevices);
-});
+  const taskAssociations = taskDeviceAssociations[task_id] || {};
 
-// Endpoint to update the device list for a task
-app.post("/updateDeviceList", (req, res) => {
-  const { taskId, deviceId, isWatching } = req.body;
+  const linkedDevices = [];
+  const unlinkedDevices = [];
 
-  if (!taskId || !deviceId || typeof isWatching === 'undefined') {
-    return res.status(400).send("Missing taskId, deviceId, or isWatching.");
-  }
-
-  // Update the association in the taskDeviceAssociations object
-  if (!taskDeviceAssociations[taskId]) {
-    taskDeviceAssociations[taskId] = []; // Initialize the task's device list if not already
-  }
-
-  if (isWatching) {
-    // Add the device to the task if it's being associated
-    if (!taskDeviceAssociations[taskId].includes(deviceId)) {
-      taskDeviceAssociations[taskId].push(deviceId);
+  deviceList.forEach((device) => {
+    if (taskAssociations[device.id]) {
+      linkedDevices.push({
+        ...device,
+        isWatching: taskAssociations[device.id].isWatching,
+      });
+    } else {
+      unlinkedDevices.push(device);
     }
-  } else {
-    // Remove the device from the task if it's being disassociated
-    taskDeviceAssociations[taskId] = taskDeviceAssociations[taskId].filter(
-      (id) => id !== deviceId
-    );
-  }
+  });
 
-  res.json({ success: true, taskDeviceAssociations: taskDeviceAssociations[taskId] });
+  res.json({ linkedDevices, unlinkedDevices });
 });
 
+// Endpoint to link/unlink a device to a task
+app.post("/devices/update", (req, res) => {
+  const { task_id, device_id, isWatching, isLinkedToTask } = req.body;
+
+  if (!task_id || !device_id) {
+    return res
+      .status(400)
+      .json({ error: "task_id and device_id are required" });
+  }
+
+  if (!taskDeviceAssociations[task_id]) {
+    taskDeviceAssociations[task_id] = {};
+  }
+
+  if (isLinkedToTask) {
+    taskDeviceAssociations[task_id][device_id] = {
+      isWatching: !!isWatching,
+    };
+  } else {
+    delete taskDeviceAssociations[task_id][device_id];
+  }
+
+  res.status(200).json({ message: "Device updated successfully" });
+});
 
 // Start the backend server
 const PORT = process.env.PORT || 3000;

@@ -4,18 +4,23 @@
     "description": "Backend server for handling ClickUp OAuth authentication",
     "main": "index.js",
     "scripts": {
-      "start": "node index.js",
-      "dev": "nodemon index.js"
+        "start": "node index.js",
+        "dev": "nodemon index.js"
     },
     "dependencies": {
-      "express": "^4.18.2",
-      "node-fetch": "^2.6.7"
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "node-fetch": "^2.6.7"
     },
     "devDependencies": {
-      "nodemon": "^2.0.22"
+        "nodemon": "^2.0.22"
     },
-    "keywords": ["ClickUp", "OAuth", "Express", "Node.js"],
+    "keywords": [
+        "ClickUp",
+        "OAuth",
+        "Express",
+        "Node.js"
+    ],
     "author": "Your Name",
     "license": "MIT"
-  }
-  
+}
